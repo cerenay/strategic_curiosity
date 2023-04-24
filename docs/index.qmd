@@ -7,6 +7,8 @@ format:
   html:
     code-fold: true
 editor: visual
+date: '`r format(Sys.Date())`'
+author: F. Ceren Ay
 ---
 
 In this documents we present results from an experiment in the aims of investigation how information collection behavior can be affected or affect dishonesty in a die-rolling game.
@@ -663,7 +665,7 @@ and
 
 $$
 Pr(keep\_rolling|\beta_0+\beta_1\times first\_rol\_outcome +\beta_2\times treatment+\beta_3\times demographics+\epsilon)
-$$ {#eq-rolling}
+$$
 
 ```{r}
 library(tidyverse)
@@ -710,13 +712,13 @@ We add the interaction with the treatment here. Simply changing the identificati
 
 $$
 log(number\_of\_rolls +1)=\beta_0+\beta_1\times first\_roll\_outcome\times treatment+\beta_3\times demographics+\epsilon
-$$ {#eq-rolling}
+$$
 
 and
 
 $$
 Pr(keep\_rolling|\beta_0+\beta_1\times first\_rol\_outcome \times treatment+\beta_3\times demographics+\epsilon)
-$$ {#eq-rolling}
+$$
 
 ```{r}
 
