@@ -534,9 +534,16 @@ p_density <- mm_post%>%
 aligned_plots <- align_plots(p_hist, p_density, align="hv", axis="tblr")
 ggdraw(aligned_plots[[1]]) + draw_plot(aligned_plots[[2]])
 
+```
 
+```{r}
+download_this(aligned_plots,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
 
-
+```{r}
 dishonest<-mm_post%>%
   mutate(reported_number=as.numeric(report_roll))%>%
   select(steal,report_roll,reported_number,throw_1, last_roll, second_last )%>%
@@ -592,10 +599,11 @@ gg_axis <- cowplot::get_plot_component(ggplot() +
 single<-(dishonest+honest & labs(x = NULL, y = NULL)) / gg_axis + plot_layout(heights = c(40, 1))+ plot_annotation(
   title = 'Ex-post rolls in Single Roll')
 
+single
+
 ```
 
 ```{r}
-
 download_this(single,
     button_type = "warning",
     has_icon = TRUE,
