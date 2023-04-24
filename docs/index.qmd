@@ -13,7 +13,7 @@ author: F. Ceren Ay
 
 In this documents we present results from an experiment in the aims of investigation how information collection behavior can be affected or affect dishonesty in a die-rolling game.
 
-### Treatment Variations
+## Treatment Variations
 
 In all treatments, subjects are asked to roll a virtual die and report the outcome of the first roll. Treatment variations are built on
 
@@ -27,7 +27,7 @@ a)  how many times they can roll b) outcome of the die and c)time of the rolling
 
 *Free Rolls (symbols):* Subjects are allowed to roll **as many times as they want before reporting**, outcome of the die is **symbols** after the first roll.
 
-### Analysis and Summary of Results
+## Analysis and Summary of Results
 
 The analysis focuses on the hypotheses in the pre-analysis plan and some other aspects of the results to investigate strategic curiosity. We use strategic curiosity to define the desire to collect more information when it can be used for ones benefit. In the die rolling task we assume curiosity could be strategically channeled to justify one's own dishonesty (reporting a high outcome and seeing it).
 
@@ -129,7 +129,7 @@ mmcur_pretest_merged <- mmcur_pretest_merged_pre %>%
 sample<-nrow(mmcur_pretest)
 ```
 
-### You can download the data by using the button below.
+## You can download the data by using the button below.
 
 ```{r}
 mmcur_pretest_merged %>%
@@ -217,7 +217,7 @@ download_this(extensive_margin,
     icon = "fa fa-save")
 ```
 
-### Distribution of reported numbers
+## Distribution of reported numbers
 
 Figure below shows the distribution of reported numbers for each treatment.
 
@@ -412,7 +412,7 @@ download_this(rolls_free,
     icon = "fa fa-save")
 ```
 
-### Why Keep Rolling?
+## Why Keep Rolling?
 
 The figure below shows the fact that players who got lower (\<3) outcomes in the first roll were more likely to roll more in Single Roll, Free Rolls (numbers) and T3. It shows that having a lower outcome is a motivation for rolling more.
 
@@ -436,7 +436,7 @@ download_this(why_roll,
     icon = "fa fa-save")
 ```
 
-### Why Roll Ex-Post?
+## Why Roll Ex-Post?
 
 In Single Roll, we observed high number of rollings even after reporting. To investigate ex-post rolling, the figure below shows that players who misreported were more likely to roll after reporting. We report the same numbers for Free Rolls treatments too. Across all these treatments the differences between the dishonest and honest participants are significant (Wilcoxon-test, p=0.01, p\<0.001, p\<0.001 from left to right).
 
@@ -602,7 +602,7 @@ download_this(single,
     icon = "fa fa-save")
 ```
 
-### Liars
+## Liars
 
 The figure below shows the distribution of the reported number by the outcome of the first die-roll. On the x axis we exhibit the reported numbers and y axis shows the fraction. The plot is faceted by the outcome of the first die-roll in the upper section. The sample in the plot are only those who reported dishonestly. As can be seen most of the dishonest participants report 6 no matter how low was the outcome of the first die-roll.
 
@@ -751,20 +751,20 @@ mcor<-round(cor(free_rolls),3)
 
 We present the correlation between some variables that shed light on the results a bit more.
 
-### Correlation Three Rolls
+## Correlation Three Rolls
 
 ```{r results='asis'}
 corstars(three_rolls, result="html")
 ```
 
-### Correlation Free Rolls
+## Correlation Free Rolls
 
 ```{r results='asis'}
 corstars(free_rolls, result="html")
 
 ```
 
-### Correlation Single Roll
+## Correlation Single Roll
 
 ```{r results='asis'}
 corstars(single_roll, result="html")
@@ -845,7 +845,7 @@ download_this(bigrams,
     icon = "fa fa-save")
 ```
 
-### Topics
+## Topics
 
 Below we show common topics in all comments without splitting into the treatments.
 
