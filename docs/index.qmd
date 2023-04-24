@@ -1,0 +1,1009 @@
+---
+title: "Appendix: Strategic Curiosity-An Experimental Analysis of Curiosity and Dishonesty"
+execute:
+  echo: false
+  warning: false
+format:
+  html:
+    code-fold: true
+editor: visual
+---
+
+In this documents we present results from an experiment in the aims of investigation how information collection behavior can be affected or affect dishonesty in a die-rolling game.
+
+### Treatment Variations
+
+In all treatments, subjects are asked to roll a virtual die and report the outcome of the first roll. Treatment variations are built on
+
+a)  how many times they can roll b) outcome of the die and c)time of the rolling opportunities.
+
+*Single Roll:* Control group is allowed to roll only once before they report the outcome and the outcome of the die is number. **After reporting**, they are allowed to roll as many times as they want.
+
+*Three Rolls:* Subjects are given the chance to roll **3 times before they report**, outcome of the die is numbers. They are not given chance to roll after reporting.
+
+*Free Rolls (numbers):* Subjects are allowed to roll **as many times as they want before reporting**, outcome is **numbers**.
+
+*Free Rolls (symbols):* Subjects are allowed to roll **as many times as they want before reporting**, outcome of the die is **symbols** after the first roll.
+
+### Analysis and Summary of Results
+
+The analysis focuses on the hypotheses in the pre-analysis plan and some other aspects of the results to investigate strategic curiosity. We use strategic curiosity to define the desire to collect more information when it can be used for ones benefit. In the die rolling task we assume curiosity could be strategically channeled to justify one's own dishonesty (reporting a high outcome and seeing it).
+
+Our design enables us to investigate curiosity in 2 different angles:
+
+1)  **Information Type:** In Free Rolls (numbers) subjects see numbers after the first roll while in Free Rolls (symbols) they see only figures after the first roll. In Free Rolls (numbers) information is relevant to the outcome and in Free Rolls (symbols) they face with a completely irrelevant one. Our results show that irrelevant information increases dishonesty significantly compare to the relevant information (Free Rolls (numbers)). In both treatments, rolling behavior follows a similar patterns, subjects with low first-rolls are more likely to roll multiple times and total number of rolls is not significantly different between two treatments.
+
+2)  **Time of the Information:** In Single Roll subjects can roll as many times as they want after reporting (ex-post) and in Free Rolls (numbers) they have the same chance before reporting (ex-ante). Our results show no significant difference between these two treatments on dishonesty. On the other hand, the rolling behavior is similar, subjects with lower first-roll outcomes are more likely to roll. In Free Rolls (numbers), highest number they see before reporting has a significant small increasing effect on dishonesty. In Single Roll, subjects who misreported are more likely to roll more ex-post.
+
+```{r include=FALSE}
+library(foreign)
+library(ggplot2)
+library(ggpubr)
+library(stargazer)
+library(compareGroups)
+library(boot)
+library(expss)
+library(reshape2)
+library(huxtable)
+library(compareGroups)
+library(dplyr)
+library(data.table)
+library(broom)
+library(xtable)
+library(margins)
+library(patchwork)
+library(downloadthis)
+library(scales)
+library(topicmodels)
+library(readr)
+library(SnowballC)
+```
+
+```{r echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+
+library(dplyr)
+library(tidyr)
+
+mmcur_pretest <- read.csv2('/Users/cerenay/mmcurious/trunk/estimering/data/raw/completeData_merged.csv') %>%
+  rename_all(~sub("mmcur1player", "", .)) %>%  # remove "mmcur1player" from column names
+  distinct() %>%  # keep only unique rows
+  replace(is.na(.), 0) %>%  # replace missing values with 0
+  mutate(distance = report_roll - throw_1,
+         steal = if_else(distance > 0, 1, 0),
+         abvmean = if_else(throw_1 > 3, 1, 0),
+         getsix = if_else(throw_1 == 6, 1, 0),
+         throw_1_f = as.factor(throw_1),
+         low_roll = if_else(max_of_additional < 5, 1, 0),
+         keeprolling = if_else(total_rolls > 1, 1, 0),
+         total_rolling = as.numeric(mmcur.1.player.p_total_rolls + total_rolls)) %>%
+  mutate(steal_f = if_else(steal == 1, 'Dishonest', 'Honest'),
+         treatment_f = factor(case_when(condition == 'C' ~ 'Single Roll',
+                                        condition == 'T1' ~ 'Three Rolls',
+                                        condition == 'T2' ~ 'Free Rolls (numbers)',
+                                        condition == 'T3' ~ 'Free Rolls (symbols)'),
+                              levels = c('Single Roll', 'Three Rolls', 'Free Rolls (numbers)', 'Free Rolls (symbols)')),
+         abvmean_c = if_else(abvmean == 1, 'Above 3', '3 or below'),
+         sex_f = case_when(gender == 'Female' ~ 1,
+                           gender == 'Male' ~ 0,
+                           gender %in% c('I do not want to report my gender', 'Other') ~ 0),
+         education=if_else(edu %in% c("Less than high school", "High school graduate"), "High school or less", "Higher than highschool"))%>%
+  filter(!duplicated(participantmturk_worker_id))%>%
+  filter(distance>=0)
+
+```
+
+```{r generating_ten_rolls, eval=FALSE}
+NUMBER <- 6
+
+for (row in 1:nrow(tenrolls)) {
+which(tenrolls[row,] == NUMBER)[1] %>%
+print(.)
+}
+
+```
+
+```{r echo=FALSE, cache=FALSE,results=FALSE ,warning=FALSE, comment=FALSE, warning=FALSE}
+tenrolls<-read.csv2('/Users/cerenay/mmcurious/trunk/estimering/data/raw/tenrolls.csv')
+
+```
+
+```{r echo=FALSE, cache=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+
+
+time <- read.csv2('/Users/cerenay/mmcurious/trunk/estimering/data/raw/TimeSpent_all.csv') %>%
+  dcast(participant__code ~ page_name, value.var = "seconds_on_page") %>%
+  mutate(submitted = ifelse(Results > 0, 1, 0)) %>%
+  filter(submitted == 1)
+
+mmcur_pretest_merged_pre <- mmcur_pretest %>%
+  merge(time, by = "participant__code") %>%
+  na_if(Inf) %>%
+  na_if(-Inf)
+
+mmcur_pretest_merged <- mmcur_pretest_merged_pre %>%
+  merge(tenrolls, by.x = "participant__code", by.y = "player") %>%
+  mutate(time_main_page = main_task_C + main_task_T1 + main_task_T2 + main_task_T3) %>%
+  filter(distance >= 0, total_rolls <= 60)
+sample<-nrow(mmcur_pretest)
+```
+
+### You can download the data by using the button below.
+
+```{r}
+mmcur_pretest_merged %>%
+  select("participant", c(5:50))%>%
+  download_this(
+    output_name = "strategic_curiosity_dataset",
+    output_extension = ".csv",
+    button_label = "Download data",
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save"
+  )
+
+```
+
+## Descriptive Statistics
+
+The experiment is conducted on Amazon Mechanical Turk in May 2019. In total, 1580 participants joined the experiment and `r sample` of them are left after implementing an exclusion criteria for finishing the experiment and giving logical answers. Specifically we exclude those who lies to earn less than they suppose to.
+
+Two table below shows the descriptive statistics about the sample by treatments. As can be seen majority of participants are male and balanced through treatments. In C and T2 no significant difference in dishonesty is observed while in T1 and T3 dishonesty is higher.
+
+```{r echo=FALSE, cache=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+descript<- compareGroups(treatment_f ~ age+sex_f+ education+political+total_rolls+practice_rolls+report_roll, data = mmcur_pretest)
+descript <- createTable(descript)
+export2md(descript)
+```
+
+### Reported Number
+
+Figure below shows the reported average reported number by treatment (bars are s.e.). In the Three Rolls treatment wee observe higher average reported number (p=0.07 compared to Single Roll and, p=0.08 compared to Free Rolls (numbers).)
+
+```{r reported_number, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+reported_number<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "report_roll", add = "mean_se", label=TRUE, lab.nb.digits = 2, label.pos = "in",fill="gray")+
+  scale_x_discrete(labels = label_wrap(15)) +
+  labs(x="Treatment",y="Reported Number")
+reported_number
+
+```
+
+```{r}
+download_this(reported_number,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+```{r fig_3a, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+
+intensive_margin<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "distance", add = "mean_se",label=TRUE,  lab.nb.digits = 2, label.pos = "in",fill="gray") +
+   scale_x_discrete(labels = label_wrap(15)) +
+  labs(x="Treatment",y="Distance (Size of the Lie) \U00B1 s.e.")
+intensive_margin
+
+
+```
+
+```{r}
+download_this(intensive_margin,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+### Dishonesty - Misreporting
+
+The first figure in that section shows the share of cheating by treatments.
+
+```{r fig_3b, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+extensive_margin<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "steal", add = "mean_se",label=TRUE, lab.nb.digits = 2,fill="gray") +
+   scale_x_discrete(labels = label_wrap(15)) +
+  labs(x="Treatment",y="Proportion of Dishonest Reports \U00B1 s.e.")
+my_comparisons <- list( c("Single Roll","Three Rolls"), c("Single Roll","Free Rolls (numbers)"), c("Free Rolls (numbers)","Free Rolls (symbols)"),c("Three Rolls","Free Rolls (numbers)"))
+
+extensive_margin
+```
+
+```{r}
+download_this(extensive_margin,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+### Distribution of reported numbers
+
+Figure below shows the distribution of reported numbers for each treatment.
+
+```{r echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+report_real<-ggplot(mmcur_pretest,aes( x= report_roll,y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..]))+
+  geom_histogram(binwidth=0.5, alpha=0.2, colour="black", fill="blue")+facet_grid(.~treatment_f)+xlab("Reported vs. Real Number")+
+  geom_histogram(aes( x= throw_1,y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..]),binwidth=0.5, alpha=0.3)+
+  ggtitle("Reported number vs. the real outcome of the first die-roll")+
+  labs(subtitle="The blue bars show the reported number and the gray bars show the real die-outcome")+
+  ylab("Fraction")+
+  guides(fill = TRUE) +
+  theme(
+panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+panel.grid.minor = element_blank(),
+panel.grid.major = element_blank(),
+plot.background = element_rect(fill = "transparent",colour = NA)
+)
+report_real
+
+```
+
+```{r}
+
+download_this(report_real,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+```{r fig_4}
+library(stringr)
+library(tidyr)
+mmcur_pretest[,13:22][mmcur_pretest[,13:22] == 0] <- NA
+mmcur_pretest[,13:22][is.na(mmcur_pretest[,13:22])] <- ""
+
+dishonest<-mmcur_pretest%>%
+  tidyr::unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(stringr::str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,reported_number,throw_1, last_outcome,treatment_f,total_rolls )%>%
+  filter(steal==1&treatment_f=="Free Rolls (numbers)"&total_rolls>1)%>%
+  ggplot() +
+  geom_histogram(aes(x= last_outcome, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+  scale_fill_manual(name = "Last roll",
+                    values = c("gray48")) +
+   scale_color_manual(name = "Last rolls",
+                     values = c("gray48")) +
+    ylim(0,0.5)+
+  geom_hline(yintercept = 0.16,linetype = "longdash")+
+  ggthemes::theme_clean() + 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.5,0.8)) +
+  #geom_density(aes(x= "reported_number", y = ..density..), fill = "black", colour = "black", alpha = 0.3) +
+ ylab("Frequency")+
+  xlab("Outcome of the last die-roll")+
+    ggtitle("Dishonest")+
+    rremove("legend")+  
+  rremove("xlab") 
+
+
+honest<-mmcur_pretest%>%
+  unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,reported_number,throw_1, last_outcome,treatment_f,total_rolls )%>%
+  filter(steal==0&treatment_f=="Free Rolls (numbers)"&total_rolls>1)%>%
+  ggplot() +
+  geom_histogram(aes(x= last_outcome, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+  scale_fill_manual(name = "Last roll",
+                    values = c("gray48")) +
+   scale_color_manual(name = "Last rolls",
+                     values = c("gray48")) +
+  ylim(0,0.5)+
+  geom_hline(yintercept = 0.16,linetype = "longdash")+
+  ggthemes::theme_clean()+ 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.5,0.8)) +
+ ylab("Fraction")+
+  xlab("Outcome of the last roll")+
+  ggtitle("Honest")+
+  rremove("y.axis")+
+  rremove("ylab") +
+  rremove("y.text") +
+  rremove("y.ticks") +
+  rremove("legend")+  
+    rremove("xlab") 
+gg_axis <- cowplot::get_plot_component(ggplot() +
+  labs(x = "Outcome of the last roll"), "xlab-b")
+
+free_rolls<- (dishonest+honest & labs(x = NULL, y = NULL)) / gg_axis + plot_layout(heights = c(40, 1))+ plot_annotation(
+  title = 'Outcome of the last roll in Free Rolls (numbers)')
+
+free_rolls
+```
+
+```{r}
+download_this(free_rolls,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+
+```
+
+```{r}
+dishonest<-mmcur_pretest%>%
+  unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,reported_number,throw_1, last_outcome,treatment_f,total_rolls )%>%
+  filter(steal==1&treatment_f=="Three Rolls"&total_rolls>1)%>%
+  ggplot() +
+  geom_histogram(aes(x= last_outcome, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+    ylim(0,0.8)+
+  scale_fill_manual(name = "Last roll",
+                    values = c("gray48")) +
+   scale_color_manual(name = "Last rolls",
+                     values = c("gray48")) +
+  geom_hline(yintercept = 0.166,linetype = "longdash")+
+  ggthemes::theme_clean() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+  #geom_density(aes(x= "reported_number", y = ..density..), fill = "black", colour = "black", alpha = 0.3) +
+ ylab("Fraction")+
+  xlab("Outcome of the last roll")+
+  ggtitle("Dishonest")+
+    rremove("legend")+  
+  rremove("xlab") 
+
+
+
+honest<-mmcur_pretest%>%
+  unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,reported_number,throw_1, last_outcome,treatment_f,total_rolls )%>%
+  filter(steal==0&treatment_f=="Three Rolls"&total_rolls>1)%>%
+  ggplot() +
+  geom_histogram(aes(x= last_outcome, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+  geom_hline(yintercept = 0.166, linetype = "longdash")+
+  ylim(0,0.8)+
+  scale_fill_manual(name = "Last roll",
+                    values = c("gray48")) +
+   scale_color_manual(name = "Last rolls",
+                     values = c("gray48")) +
+  ggthemes::theme_clean() + 
+  theme(plot.title = element_text(hjust = 0.5)) +
+ ylab("Fraction")+
+  xlab("Outcome of the last roll")+
+  ggtitle("Honest")+
+  rremove("y.axis")+
+  rremove("ylab") +
+  rremove("y.text") +
+  rremove("y.ticks") +
+  rremove("legend")+  
+    rremove("xlab") 
+gg_axis <- cowplot::get_plot_component(ggplot() +
+  labs(x = "Outcome of the last roll"), "xlab-b")
+
+three_rolls<-(dishonest+honest & labs(x = NULL, y = NULL)) / gg_axis + plot_layout(heights = c(40, 1))+ plot_annotation(
+  title = 'Outcome of the last roll in Three Rolls')
+
+three_rolls
+```
+
+```{r}
+download_this(three_rolls,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+## Rolling Behavior - Curiosity
+
+To check whether the treatment difference is driven by the number of rolls we provide the distribution for each treatment. For T2 and T3 the distribution is very close which shows that the outcome of the die (after first roll) plays significant role for variation in dishonesty. For Single Roll, we analyze the ex-post rolling behavior. The graph shows number of rolls by treatments (Single Roll,Free Rolls (numbers) & Free Rolls (symbols)) and by the dummy for the first roll (\>3 or not).
+
+```{r echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+
+rolls_free<-mmcur_pretest%>%
+  filter(treatment_f%in%c("Free Rolls (symbols)","Free Rolls (numbers)"))%>%
+ggbarplot(x = "treatment_f", y = "total_rolls",add = "mean_se", fill="gray", label=TRUE,lab.nb.digits = 2, label.pos = "in")+labs(title="Rolling behavior in the free rolls treatments", x="Treatment",y="Number of rolls \U00B1 s.e.")+stat_compare_means(comparisons = my_comparisons, label = "p.format", label.y = c(0.5))
+rolls_free
+
+
+```
+
+```{r}
+
+download_this(rolls_free,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+### Why Keep Rolling?
+
+The figure below shows the fact that players who got lower (\<3) outcomes in the first roll were more likely to roll more in Single Roll, Free Rolls (numbers) and T3. It shows that having a lower outcome is a motivation for rolling more.
+
+```{r fig_5}
+why_roll<- mmcur_pretest%>%
+  mutate(label=if_else(treatment_f=="Single Roll", "Single Roll \n (ex-post rolling)", if_else(treatment_f=="Free Rolls (numbers)", "Free Rolls (numbers) \n (ex-ante rolling)", if_else(treatment_f=="Free Rolls (symbols)", "Free Rolls (symbols) \n (ex-ante rolling)","none"))),
+         label = factor(label, level=c("Single Roll \n (ex-post rolling)", "Free Rolls (numbers) \n (ex-ante rolling)", "Free Rolls (symbols) \n (ex-ante rolling)")))%>%
+  filter(treatment_f!="Three Rolls" & total_rolling<50)%>%
+ggbarplot(x = "abvmean_c", y = "total_rolling",add = "mean_se", fill="gray",label=TRUE, lab.nb.digits = 2, label.pos = "in",facet.by= "label", data=.)+coord_cartesian(ylim =c (0, 6))+labs(x="Treatment",y="Number of Rolls \U00B1 s.e.")+stat_compare_means(comparisons = my_comparisons, label = "p.signif", label.y = c(4))
+
+why_roll
+
+
+
+```
+
+```{r}
+download_this(why_roll,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+### Why Roll Ex-Post?
+
+In Single Roll, we observed high number of rollings even after reporting. To investigate ex-post rolling, the figure below shows that players who misreported were more likely to roll after reporting. We report the same numbers for Free Rolls treatments too. Across all these treatments the differences between the dishonest and honest participants are significant (Wilcoxon-test, p=0.01, p\<0.001, p\<0.001 from left to right).
+
+```{r fig_6}
+
+free=c("Single Roll", "Free Rolls (numbers)", "Free Rolls (symbols)")
+honesty_roll<-mmcur_pretest%>%
+  mutate(label=if_else(treatment_f=="Single Roll", "Single Roll \n (ex-post rolling)", if_else(treatment_f=="Free Rolls (numbers)", "Free Rolls (numbers) \n (ex-ante rolling)", if_else(treatment_f=="Free Rolls (symbols)", "Free Rolls (symbols) \n (ex-ante rolling)","none"))),
+         label = factor(label, level=c("Single Roll \n (ex-post rolling)", "Free Rolls (numbers) \n (ex-ante rolling)", "Free Rolls (symbols) \n (ex-ante rolling)"))
+         )%>%
+  filter(getsix==0&treatment_f%in%free)%>%
+ggbarplot(x = "steal_f", y = "total_rolling",add = "mean_se", fill="gray",label=TRUE,lab.nb.digits = 2, label.pos = "in", facet.by= "label",data=.)+coord_cartesian(ylim =c (0, 9))+labs(x="Treatment",y="Number of Rolls \U00B1 s.e.")
+
+
+honesty_roll
+
+
+
+```
+
+```{r}
+
+download_this(honesty_roll,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+```{r}
+rolled<-
+  mmcur_pretest%>%
+  filter(keeprolling==1&getsix==0)
+```
+
+```{r post_throws}
+library(stringr)
+library(splitstackshape)
+mm_post<-mmcur_pretest_merged%>%
+  mutate(treatment=treatment_f)%>%
+  filter(treatment=="Single Roll")%>%
+  select(treatment,participantmturk_worker_id, steal, throw_1, report_roll,  post_throws)%>%
+  mutate(last_roll=as.numeric(str_sub(post_throws, start= -1)),
+         second_last=as.numeric(str_sub(post_throws, -3,-3)),
+          report_roll=as.numeric(report_roll),
+         )%>%
+  cSplit("post_throws", ",")%>%
+  distinct(participantmturk_worker_id,.keep_all = TRUE)%>%
+  filter( post_throws_01>0)
+linetypes1 <- c("dashed","solid")
+
+#names(mm_post) <- sub("mmcur1player", "", names(mm_post))
+
+p_hist<-mm_post%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,report_roll,reported_number,throw_1, last_roll, second_last )%>%
+  #melt(na.rm=FALSE, id=c("steal", "mmcur1playerreport_roll", "mmcur1playerthrow_1"))%>%
+  ggplot() +
+  geom_histogram(aes(x= last_roll, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+  geom_histogram(aes(x=second_last, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "gray9", fill = "gray9"), stat="count",binwidth=0.5, alpha=0.3,size=1,linetype =  "solid", na.rm = TRUE)+
+  scale_fill_manual(name = "Ex-post rolls",
+                    labels = c("Last roll", "Second last roll"),
+                    values = c("gray48", "gray9")) +
+  scale_color_manual(name = "Ex-post rolls",
+                     labels = c("Last roll", "Second last roll"),
+                     values = c("gray48", "gray9")) + 
+  scale_linetype_manual(
+                    values=linetypes1) +
+    ylim(0, 0.33)+
+  ggthemes::theme_clean() + 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.5,0.8)) +
+  #geom_density(aes(x= "reported_number", y = ..density..), fill = "black", colour = "black", alpha = 0.3) +
+ ylab("Fraction")+
+  xlab("Outcome of the last and second last roll")+
+  ggtitle("Ex-post rolls in the Single Roll treatment")
+
+library(ggpubr)
+library(cowplot)
+
+p_density <- mm_post%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,report_roll,reported_number,throw_1, last_roll, second_last )%>%
+  ggdensity(
+  x = "reported_number",
+  fill = "yellow", alpha = 0.2)+
+      ylim(0,0.4)+
+  scale_y_continuous(expand = expansion(mult = c(0.08, 0.5)), position = "right", name="Density of reported number")  +
+  theme_half_open(11, rel_small = 1) +
+  rremove("x.axis")+
+  rremove("xlab") +
+  rremove("x.text") +
+  rremove("x.ticks") +
+  rremove("legend")
+
+
+aligned_plots <- align_plots(p_hist, p_density, align="hv", axis="tblr")
+ggdraw(aligned_plots[[1]]) + draw_plot(aligned_plots[[2]])
+
+
+
+
+dishonest<-mm_post%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,report_roll,reported_number,throw_1, last_roll, second_last )%>%
+  filter(steal==1)%>%
+  #melt(na.rm=FALSE, id=c("steal", "mmcur1playerreport_roll", "mmcur1playerthrow_1"))%>%
+  ggplot() +
+  geom_histogram(aes(x= last_roll, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+    ylim(0,0.8)+
+  scale_fill_manual(name = "Last roll",
+                    values = c("gray48")) +
+   scale_color_manual(name = "Last rolls",
+                     values = c("gray48")) +
+  ggthemes::theme_clean() + 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.5,0.8)) +
+  #geom_density(aes(x= "reported_number", y = ..density..), fill = "black", colour = "black", alpha = 0.3) +
+ ylab("Fraction")+
+  xlab("Outcome of the last roll and the reported number")+
+  ggtitle("Dishonest")+
+    rremove("legend")+  
+  rremove("xlab") 
+
+
+
+
+
+honest<-mm_post%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,report_roll,reported_number,throw_1, last_roll, second_last )%>%
+  filter(steal==0)%>%
+  #melt(na.rm=FALSE, id=c("steal", "mmcur1playerreport_roll", "mmcur1playerthrow_1"))%>%
+  ggplot() +
+  geom_histogram(aes(x= last_roll, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+  ylim(0,0.8)+
+  scale_fill_manual(name = "Last roll",
+                    values = c("gray48")) +
+   scale_color_manual(name = "Last rolls",
+                     values = c("gray48")) +
+  ggthemes::theme_clean() + 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.5,0.8)) +
+  #geom_density(aes(x= "reported_number", y = ..density..), fill = "black", colour = "black", alpha = 0.3) +
+ ylab("Fraction")+
+  xlab("Outcome of the last roll and the reported number")+
+  ggtitle("Honest")+
+  rremove("y.axis")+
+  rremove("ylab") +
+  rremove("y.text") +
+  rremove("y.ticks") +
+      rremove("legend")+  
+    rremove("xlab") 
+gg_axis <- cowplot::get_plot_component(ggplot() +
+  labs(x = "Outcome of the last roll and the reported number"), "xlab-b")
+
+single<-(dishonest+honest & labs(x = NULL, y = NULL)) / gg_axis + plot_layout(heights = c(40, 1))+ plot_annotation(
+  title = 'Ex-post rolls in Single Roll')
+
+```
+
+```{r}
+
+download_this(single,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+### Liars
+
+The figure below shows the distribution of the reported number by the outcome of the first die-roll. On the x axis we exhibit the reported numbers and y axis shows the fraction. The plot is faceted by the outcome of the first die-roll in the upper section. The sample in the plot are only those who reported dishonestly. As can be seen most of the dishonest participants report 6 no matter how low was the outcome of the first die-roll.
+
+```{r roll_by_report, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+liars<-filter(mmcur_pretest,steal==1)
+roll_by_lie<-ggplot(liars,aes( x= report_roll,y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..]))+geom_histogram(binwidth=0.5)+facet_grid(.~ throw_1)+xlab("Reported Number")+ylab("Fraction")+theme(
+panel.background = element_rect(fill = "transparent",colour = NA), # or theme_blank()
+panel.grid.minor = element_blank(),
+panel.grid.major = element_blank(),
+plot.background = element_rect(fill = "transparent",colour = NA)
+)+ggtitle("Reported number by the outcome of the firs die-roll")+
+  labs(subtitle="The title bars in gray shows the real outcome of the first die-roll")
+roll_by_lie
+
+```
+
+```{r}
+
+download_this(roll_by_lie,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+## Determinants of the "distance"
+
+This part is to investigate the log(total_rolls) and see what we lose or gain.
+
+This table shows regression estimation for reported number-first roll outcome.
+
+The identification strategies we use are as below:
+
+$$
+distance=\beta_0+\beta_1\times \log(number of rolls+1)+\beta_2\times treatment+\beta_3\times demographics+\epsilon
+$$ {#eq-log_rolls_norm}
+
+$$
+distance=\beta_0+\beta_1\times log(number of rolls+1)+ \beta_2 \times treatment\times first\_roll+\beta_3\times demographics+\epsilon
+$$ {#eq-interaction}
+
+```{r}
+cheating_log_norm = mmcur_pretest%>% 
+  filter(getsix==0)%>%
+   lm(distance~log(total_rolls+1)+ treatment_f+practice_rolls+age+sex_f+ education,data = .)
+
+cheating_int_log = mmcur_pretest%>% 
+   lm(distance~ log(total_rolls+1)+ treatment_f*throw_1+age+sex_f+ education,data = .)
+
+```
+
+```{r results="asis"}
+stargazer::stargazer(cheating_log_norm,cheating_int_log,type='html')
+```
+
+## Rolling behavior
+
+To investigate the rolling behavior we use OLS and logistic regression to estimate the number of rolls and the likelihood of rolling more than once. The identifications strategies are as below:
+
+$$
+log(number\_of\_rolls +1)=\beta_0+\beta_1\times first\_roll\_outcome +\beta_2\times treatment+\beta_3\times demographics+\epsilon
+$$ {#eq-rolling}
+
+and
+
+$$
+Pr(keep\_rolling|\beta_0+\beta_1\times first\_rol\_outcome +\beta_2\times treatment+\beta_3\times demographics+\epsilon)
+$$ {#eq-rolling}
+
+```{r}
+library(tidyverse)
+library(marginaleffects)
+rolling <-mmcur_pretest %>% 
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+  lm(total_rolls~throw_1+treatment_f, data=.)
+rolling_log = mmcur_pretest %>% 
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+  lm( log(total_rolls)~ throw_1+treatment_f, data=.)
+rolling_log_one = mmcur_pretest %>% 
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+   lm( log(total_rolls+1)~ throw_1+treatment_f, data=.)
+
+rolling_simple<-mmcur_pretest %>% 
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+   lm( log(total_rolls+1)~ throw_1+treatment_f, data=.)
+rolling_full<-mmcur_pretest %>% 
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+   lm( log(total_rolls+1)~ throw_1+treatment_f+practice_rolls+sex_f+age+education, data=.)
+
+aa=rolling_more_simple=mmcur_pretest%>%
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))
+
+rolling_more_simple=mmcur_pretest%>%
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+  glm(keeprolling~ throw_1+ treatment_f,family=binomial(link=logit),data =.)
+
+rolling_more_full=mmcur_pretest%>%
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+  glm(keeprolling~ throw_1+ treatment_f+practice_rolls+sex_f+age+education,family=binomial(link=logit),data =.)
+
+
+```
+
+```{r results="asis"}
+stargazer::stargazer(rolling_simple,rolling_full,rolling_more_simple,rolling_more_full,type="html")
+
+```
+
+## Adding interactions
+
+We add the interaction with the treatment here. Simply changing the identification strategy to:
+
+$$
+log(number\_of\_rolls +1)=\beta_0+\beta_1\times first\_roll\_outcome\times treatment+\beta_3\times demographics+\epsilon
+$$ {#eq-rolling}
+
+and
+
+$$
+Pr(keep\_rolling|\beta_0+\beta_1\times first\_rol\_outcome \times treatment+\beta_3\times demographics+\epsilon)
+$$ {#eq-rolling}
+
+```{r}
+
+
+rolling_simple_int<-mmcur_pretest %>% 
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+   lm( log(total_rolls+1)~ throw_1*treatment_f, data=.)
+rolling_full_int<-mmcur_pretest %>% 
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+  lm( log(total_rolls+1)~ throw_1*treatment_f+practice_rolls+sex_f+age+education, data=.)
+rolling_more_simple_int=mmcur_pretest%>%
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+  glm(keeprolling~ throw_1*treatment_f,family=binomial(link=logit),data =.)
+rolling_more_full_int=mmcur_pretest%>%
+  filter(treatment_f%in%c("Free Rolls (numbers)", "Free Rolls (symbols)"))%>%
+  glm(keeprolling~ throw_1*treatment_f+practice_rolls+sex_f+age+education,family=binomial(link=logit),data =.)
+
+```
+
+```{r results="asis"}
+stargazer::stargazer(rolling_simple_int,rolling_full_int,type="html")
+stargazer::stargazer(rolling_more_simple_int,rolling_more_full_int,type="html")
+
+```
+
+```{r echo=FALSE}
+
+
+free_rolls<-mmcur_pretest_merged%>%
+  filter(getsix==0)%>%
+  unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll),
+         roll_more_than_once=if_else(total_rolls>1, 1, 0))%>%
+  select(steal, distance, report_roll, total_rolls,max_of_additional, when6, total_6_T2,treatment_f, last_outcome,roll_more_than_once )%>%
+  filter(treatment_f=="Free Rolls (numbers)")
+
+
+three_rolls<-mmcur_pretest_merged%>%
+  filter(getsix==0)%>%
+  unite(throws, throw_1:third_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll),
+                  roll_more_than_once=if_else(total_rolls>1, 1, 0))%>%
+  select(steal, distance, report_roll, total_rolls,max_of_additional, when6, total_6_T2,treatment_f,last_outcome)%>%
+  filter(treatment_f=="Three Rolls")
+  
+free_rolls <-select(free_rolls, distance, report_roll, roll_more_than_once,total_rolls,max_of_additional, when6, total_6_T2, last_outcome)
+three_rolls<-select(three_rolls,distance,report_roll,max_of_additional, when6, total_6_T2,last_outcome)
+single_roll<-select(mm_post,steal, throw_1, last_roll)
+
+
+
+
+library(xtable)
+library(Hmisc)
+
+# x is a matrix containing the data
+# method : correlation method. "pearson"" or "spearman"" is supported
+# removeTriangle : remove upper or lower triangle
+# results :  if "html" or "latex"
+  # the results will be displayed in html or latex format
+corstars <-function(x, method=c("pearson", "spearman"), removeTriangle=c("upper", "lower"),
+                     result=c("none", "html", "latex")){
+    #Compute correlation matrix
+    require(Hmisc)
+    x <- as.matrix(x)
+    correlation_matrix<-rcorr(x, type=method[1])
+    R <- correlation_matrix$r # Matrix of correlation coeficients
+    p <- correlation_matrix$P # Matrix of p-value 
+    
+    ## Define notions for significance levels; spacing is important.
+    mystars <- ifelse(p < .0001, "****", ifelse(p < .001, "*** ", ifelse(p < .01, "**  ", ifelse(p < .05, "*   ", "    "))))
+    
+    ## trunctuate the correlation matrix to two decimal
+    R <- format(round(cbind(rep(-1.11, ncol(x)), R), 2))[,-1]
+    
+    ## build a new matrix that includes the correlations with their appropriate stars
+    Rnew <- matrix(paste(R, mystars, sep=""), ncol=ncol(x))
+    diag(Rnew) <- paste(diag(R), " ", sep="")
+    rownames(Rnew) <- colnames(x)
+    colnames(Rnew) <- paste(colnames(x), "", sep="")
+    
+    ## remove upper triangle of correlation matrix
+    if(removeTriangle[1]=="upper"){
+      Rnew <- as.matrix(Rnew)
+      Rnew[upper.tri(Rnew, diag = TRUE)] <- ""
+      Rnew <- as.data.frame(Rnew)
+    }
+    
+    ## remove lower triangle of correlation matrix
+    else if(removeTriangle[1]=="lower"){
+      Rnew <- as.matrix(Rnew)
+      Rnew[lower.tri(Rnew, diag = TRUE)] <- ""
+      Rnew <- as.data.frame(Rnew)
+    }
+    
+    ## remove last column and return the correlation matrix
+    Rnew <- cbind(Rnew[1:length(Rnew)-1])
+    if (result[1]=="none") return(Rnew)
+    else{
+      if(result[1]=="html") print(xtable(Rnew), type="html")
+      else print(xtable(Rnew), type="latex") 
+    }
+} 
+
+mcor<-round(cor(free_rolls),3)
+
+
+
+
+```
+
+## Correlation of various behavioral measures
+
+We present the correlation between some variables that shed light on the results a bit more.
+
+### Correlation Three Rolls
+
+```{r results='asis'}
+corstars(three_rolls, result="html")
+```
+
+### Correlation Free Rolls
+
+```{r results='asis'}
+corstars(free_rolls, result="html")
+
+```
+
+### Correlation Single Roll
+
+```{r results='asis'}
+corstars(single_roll, result="html")
+
+```
+
+## Some text insights from the participants
+
+We gave the participants the change to write down any comments they have at the end of the experiment. The text we got created some interesting and amusing insights that we wanted to share here as well.
+
+We have 1226 comments in total across all treatments.
+
+```{r echo=FALSE}
+reviews_raw <- mmcur_pretest %>%
+  select(participant__code, treatment_f, general)
+
+custom_stop_words <- tibble(word = c("mturk","experiment","nope","no","thank", "good", "study","nothing","survey", "fun","fuck", "yeah", "god", "bless", "lol", "weird","jesus", "2nd","hit","thx","pz","page", "load", "error","roll",1:20))
+
+
+
+reviews <- reviews_raw %>% 
+  transmute(id  = participant__code,
+            comment= general, 
+            treatment_f)
+
+
+reviews <- reviews %>% 
+  mutate(across(c(comment), ~str_replace_all(., "\\\\r\\\\n", ". ")),
+         across(c(comment), ~str_remove_all(., "[\\\\\"]")),
+         across(c(comment), str_squish))
+
+
+library(tidytext)
+reviews_by_word <- reviews %>% 
+  unnest_tokens(term, comment) %>% 
+  anti_join(stop_words, by = c(term = "word")) %>% 
+  anti_join(custom_stop_words, by = c(term = "word")) %>% 
+  drop_na(term) 
+
+reviews_by_bigram <- reviews %>% 
+  unnest_tokens(term, comment, token = "ngrams", n = 2) %>% 
+  separate(term, into = c("word1", "word2"), sep = " ", remove = FALSE)  %>% 
+  anti_join(stop_words, by = c(word1 = "word")) %>% 
+  anti_join(stop_words, by = c(word2 = "word")) %>% 
+  anti_join(custom_stop_words, by = c(word1 = "word")) %>% 
+  anti_join(custom_stop_words, by = c(word2 = "word")) %>% 
+  drop_na(term) %>% 
+  mutate(term = if_else(term == "worku002flife balance", "work-life balance", term))
+
+```
+
+```{r echo=FALSE}
+words <- reviews_by_word %>%   
+  count(treatment_f, term) %>%
+  tidylo::bind_log_odds(set = treatment_f, feature = term, n = n)
+
+bigrams<- reviews_by_bigram %>% 
+  count(treatment_f, term) %>%
+  tidylo::bind_log_odds(set = treatment_f, feature = term, n = n)
+  
+bigrams<-bigrams %>% 
+  group_by(treatment_f) %>% 
+  slice_max(order_by = n, n = 5, with_ties = FALSE) %>% 
+  mutate(term = reorder_within(term, n, treatment_f))  %>%  
+  ggplot(aes(x = n, y = term, fill = treatment_f)) + 
+  geom_col(show.legend = FALSE) + 
+  facet_wrap(vars(treatment_f), scales = "free") + 
+  scale_y_reordered()+
+  ggtitle("Most common words by categories in comments")
+bigrams
+```
+
+```{r}
+
+download_this(bigrams,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+### Topics
+
+Below we show common topics in all comments without splitting into the treatments.
+
+```{r echo=FALSE}
+
+
+by_treatment_word <- reviews %>%
+  group_by(treatment_f)%>%
+  unnest_tokens(word, comment)
+
+word_counts <- by_treatment_word %>%
+  anti_join(stop_words) %>%
+    anti_join(custom_stop_words) %>% 
+  count(treatment_f, word, sort = TRUE)
+
+
+word_counts<-word_counts %>%
+  mutate(word = wordStem(word)) %>%
+  count(word, sort = TRUE)
+
+treatment_dtm <- word_counts %>%
+  cast_dtm(treatment_f, word, n)
+
+treatment_lda <- LDA(treatment_dtm, k = 6, control = list(seed = 1234))
+
+treatment_topics <- tidy(treatment_lda, matrix = "beta")
+
+top_terms <- treatment_topics %>%
+  group_by(topic) %>%
+  slice_max(beta, n = 5) %>% 
+  ungroup() %>%
+  arrange(topic, -beta)
+
+topics<-top_terms %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(beta, term, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  scale_y_reordered()
+topics
+```
+
+```{r}
+
+download_this(topics,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
+
+Now we matched these identified topics to treatments and check which one is more popular in which treatment. What we observe is, in the Single Roll Topic 5 and Three Rolls treatment Topic 1 is the most popular, and in Free Rolls (numbers) the most popular topic is 3 (ang 6) and 4 followed by 2 in the Free Rolls (symbols). When pying attention, only in Topic 3 we can observe honesty coming forward and only in Free Rolls (numbers) condition we observe this topic being popular among comments.
+
+```{r echo=FALSE}
+
+
+treatment_gamma <- tidy(treatment_lda, matrix = "gamma")
+treatment_gamma <- treatment_gamma %>%
+  separate(document, c("title", "chapter"), sep = "_", convert = TRUE)
+
+gamma<- treatment_gamma %>%
+  mutate(title = reorder(title, gamma * topic)) %>%
+  ggplot(aes(factor(topic), gamma)) +
+  geom_boxplot() +
+  facet_wrap(~ title) +
+  labs(x = "topic", y = expression(gamma))
+
+gamma
+```
+
+```{r}
+
+download_this(gamma,
+    button_type = "warning",
+    has_icon = TRUE,
+    icon = "fa fa-save")
+```
