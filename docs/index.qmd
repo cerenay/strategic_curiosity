@@ -149,15 +149,19 @@ mmcur_pretest_merged %>%
 
 The experiment is conducted on Amazon Mechanical Turk in May 2019. In total, 1580 participants joined the experiment and `r sample` of them are left after implementing an exclusion criteria for finishing the experiment and giving logical answers. Specifically we exclude those who lies to earn less than they suppose to.
 
-Two table below shows the descriptive statistics about the sample by treatments. As can be seen majority of participants are male and balanced through treatments. In C and T2 no significant difference in dishonesty is observed while in T1 and T3 dishonesty is higher.
+Two table below shows the descriptive statistics about the sample by treatments. As can be seen majority of participants are male and balanced through treatments. In Single Roll and Free Rolls (numbers) no significant difference in dishonesty is observed while in Three Rolls and Free Rolls (symbols) dishonesty is higher.
 
 ```{r echo=FALSE, cache=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
-descript<- compareGroups(treatment_f ~ age+sex_f+ education+political+total_rolls+practice_rolls+report_roll, data = mmcur_pretest)
+descript<- compareGroups(treatment_f ~ age+sex_f+ education+political+total_rolls+practice_rolls+report_roll+observe+legit+curious, data = mmcur_pretest)
 descript <- createTable(descript)
 export2md(descript)
 ```
 
-### Reported Number
+
+
+## Dishonesty 
+
+We start our analysis by investigating the dishonest behavior across treatments. 
 
 Figure below shows the reported average reported number by treatment (bars are s.e.). In the Three Rolls treatment wee observe higher average reported number (p=0.07 compared to Single Roll and, p=0.08 compared to Free Rolls (numbers).)
 
@@ -176,6 +180,8 @@ download_this(reported_number,
     icon = "fa fa-save")
 ```
 
+Since we were able to compare the real outcomes to the reported ones, we proide a measure to analyse the magnitude of the lie or **intensive margin** of the lie, which shows the difference between the reported number and the real outcome of the first die-roll. 
+
 ```{r fig_3a, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
 
 intensive_margin<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "distance", add = "mean_se",label=TRUE,  lab.nb.digits = 2, label.pos = "in",fill="gray") +
@@ -193,9 +199,7 @@ download_this(intensive_margin,
     icon = "fa fa-save")
 ```
 
-### Dishonesty - Misreporting
-
-The first figure in that section shows the share of cheating by treatments.
+The figure below shows the proportion of dishonest reports in each treatment or **extensive margin** of the lie. 
 
 ```{r fig_3b, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
 extensive_margin<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "steal", add = "mean_se",label=TRUE, lab.nb.digits = 2,fill="gray") +
