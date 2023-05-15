@@ -8,7 +8,6 @@ format:
     code-fold: true
 editor: visual
 date: '`r format(Sys.Date())`'
-author: F. Ceren Ay
 ---
 
 In this documents we present results from an experiment in the aims of investigation how information collection behavior can be affected or affect dishonesty in a die-rolling game.
@@ -157,11 +156,9 @@ descript <- createTable(descript)
 export2md(descript)
 ```
 
+## Dishonesty
 
-
-## Dishonesty 
-
-We start our analysis by investigating the dishonest behavior across treatments. 
+We start our analysis by investigating the dishonest behavior across treatments.
 
 Figure below shows the reported average reported number by treatment (bars are s.e.). In the Three Rolls treatment wee observe higher average reported number (p=0.07 compared to Single Roll and, p=0.08 compared to Free Rolls (numbers).)
 
@@ -180,7 +177,7 @@ download_this(reported_number,
     icon = "fa fa-save")
 ```
 
-Since we were able to compare the real outcomes to the reported ones, we proide a measure to analyse the magnitude of the lie or **intensive margin** of the lie, which shows the difference between the reported number and the real outcome of the first die-roll. 
+Since we were able to compare the real outcomes to the reported ones, we proide a measure to analyse the magnitude of the lie or **intensive margin** of the lie, which shows the difference between the reported number and the real outcome of the first die-roll.
 
 ```{r fig_3a, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
 
@@ -199,7 +196,7 @@ download_this(intensive_margin,
     icon = "fa fa-save")
 ```
 
-The figure below shows the proportion of dishonest reports in each treatment or **extensive margin** of the lie. 
+The figure below shows the proportion of dishonest reports in each treatment or **extensive margin** of the lie.
 
 ```{r fig_3b, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
 extensive_margin<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "steal", add = "mean_se",label=TRUE, lab.nb.digits = 2,fill="gray") +
@@ -600,7 +597,6 @@ single<-(dishonest+honest & labs(x = NULL, y = NULL)) / gg_axis + plot_layout(he
   title = 'Ex-post rolls in Single Roll')
 
 ```
-
 
 ## Liars
 
