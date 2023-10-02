@@ -1,5 +1,6 @@
 ---
 title: "Appendix: Strategic Curiosity-An Experimental Analysis of Curiosity and Dishonesty"
+subtitle: F. Ceren Ay---Joel W. Berge---Katrine B. Nødvedt
 title-block-banner: true
 execute:
   echo: false
