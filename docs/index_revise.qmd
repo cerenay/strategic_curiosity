@@ -23,7 +23,7 @@ In this documents we present results from an experiment in the aims of investiga
 
 In all treatments, subjects are asked to roll a virtual die and report the outcome of the first roll. Treatment variations are built on:
 
-a)  how many times they can roll b) the outcome of the die and c)timibg of the rolling opportunities.
+a)  how many times they can roll b) the outcome of the die and c) timing of the rolling opportunities.
 
 *Single Roll:* The control group is allowed to roll only once before they report the outcome, and the outcome of the die is a number.  **After reporting**, they are allowed to roll as many times as they want.
 
