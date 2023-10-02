@@ -1,0 +1,374 @@
+---
+title: "Strategic Curiosity:"
+subtitle: An Experimental Study of Curiosity and Dishonesty
+author: Forthcoming in JEBO
+format: 
+  revealjs:
+    smaller: true
+    theme: serif
+    footer: "F. Ceren Ay, Joel W. Berge, Katrine B. Nødvedt"
+editor: visual
+---
+
+```{r include=FALSE}
+library(foreign)
+library(ggplot2)
+library(ggpubr)
+library(stargazer)
+library(compareGroups)
+library(boot)
+library(expss)
+library(reshape2)
+library(huxtable)
+library(compareGroups)
+library(dplyr)
+library(data.table)
+library(broom)
+library(xtable)
+library(margins)
+library(patchwork)
+library(tidyr)
+```
+
+```{r echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+
+library(dplyr)
+library(tidyr)
+
+mmcur_pretest <- read.csv2('/Users/cerenay/mmcurious/trunk/estimering/data/raw/completeData_merged.csv') %>%
+  rename_all(~sub("mmcur1player", "", .)) %>%  # remove "mmcur1player" from column names
+  distinct() %>%  # keep only unique rows
+  replace(is.na(.), 0) %>%  # replace missing values with 0
+  mutate(distance = report_roll - throw_1,
+         steal = if_else(distance > 0, 1, 0),
+         abvmean = if_else(throw_1 > 3, 1, 0),
+         getsix = if_else(throw_1 == 6, 1, 0),
+         throw_1_f = as.factor(throw_1),
+         low_roll = if_else(max_of_additional < 5, 1, 0),
+         keeprolling = if_else(total_rolls > 1, 1, 0),
+         total_rolling = as.numeric(mmcur.1.player.p_total_rolls + total_rolls)) %>%
+  mutate(steal_f = if_else(steal == 1, 'Dishonest', 'Honest'),
+         treatment_f = factor(case_when(condition == 'C' ~ 'Single Roll',
+                                        condition == 'T1' ~ 'Three Rolls',
+                                        condition == 'T2' ~ 'Free Rolls (numbers)',
+                                        condition == 'T3' ~ 'Free Rolls (symbols)'),
+                              levels = c('Single Roll', 'Three Rolls', 'Free Rolls (numbers)', 'Free Rolls (symbols)')),
+         abvmean_c = if_else(abvmean == 1, 'Above 3', '3 or below'),
+         sex_f = case_when(gender == 'Female' ~ 1,
+                           gender == 'Male' ~ 0,
+                           gender %in% c('I do not want to report my gender', 'Other') ~ 0),
+         education=if_else(edu %in% c("Less than high school", "High school graduate"), "High school or less", "Higher than highschool"))%>%
+  filter(!duplicated(participantmturk_worker_id))%>%
+  filter(distance>=0)
+
+
+```
+
+```{r echo=FALSE, cache=FALSE,results=FALSE ,warning=FALSE, comment=FALSE, warning=FALSE}
+tenrolls<-read.csv2('/Users/cerenay/mmcurious/trunk/estimering/data/raw/tenrolls.csv')
+
+```
+
+```{r echo=FALSE, cache=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+
+mmcur_pretest_merged <- mmcur_pretest %>%
+  merge(tenrolls, by.x = "participant__code", by.y = "player") %>%
+  filter(distance >= 0, total_rolls <= 60)
+
+```
+
+```{r echo=FALSE, cache=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
+data(mmcur_pretest_merged)
+mmcur_pretest_merged= apply_labels(mmcur_pretest_merged,
+                                    condition="Treatment",
+                                    practice_rolls="# of times they rolled the practice die with figures",
+                                    post_throws= "Rolls in C after report",
+                                    report_roll="Reported #",
+                                   distance="Real First Roll-Reported Number",
+                                   steal="Dummy for cheating",
+                                   keeprolling="Dummy for rolling more than once",
+                                   max_of_all="Max # seen in all rolls",
+                                   max_of_additional="Meax # seen after 1st roll in T2",
+                                   total_6_T2="# of 6s they got in additional rolls",
+                                   total_rolling="# of rolls in total",
+                                   abvmean="Dummy for 1st roll, >3 or not",
+                                   low_roll="Dummy for the max # seen in additional rolls <5 or not")
+```
+
+## Informasjon kan bli veldig nyttig for å treffe bedre beslutninger
+
+![](images/Screenshot%202023-09-14%20at%2007.02.57.png){width="563"}
+
+## Er det alltid sant?
+
+Preferanser over informasjon
+
+::: columns
+::: {.column width="50%"}
+-   *Vi kan ønske å unngå å lære visse ting*
+
+    ![](iq.jpg){width="244"}
+:::
+
+::: {.column width="50%"}
+-   *Eller vi kan ønske å lære andre ting selv om de ikke kan hjelpe oss med beslutninger*
+
+    ![](diana.jpg){width="174"}
+:::
+:::
+
+-   *Kan det være en strategisk motivasjon for å se etter mer informasjon?*
+
+## Kan informasjon rettferdiggjøre løgner?
+
+Tidligere studier viser at personer som ser alternative utfall, har en tendens til å jukse mer.
+
+-   Å se på andres beslutninger, betalinger eller skattemelding--bedre enn ditt eget.
+
+-   I en eksperiment: Forenklet situasjoner
+
+## A simple game
+
+*"Die under the cup"* eksperiment
+
+-   Rulle en terning og rapporter resultatet av første rull for å tjene penger.
+
+-   Uærlighet: feil rapportering.
+
+-   Variasjoner: mulighet å rulle terningen flere ganger (begrenset eller ubegrenset).
+
+![](die-under-cup.jpg){fig-align="center" width="498"}
+
+Resultat: Folk lyver mer når de kan rulle terningen flere ganger.
+
+## Strategic Curiosity
+
+Vi lurer på følgende:
+
+-   Oppsøker folk "strategisk" informasjon for å rettferdiggjøre beslutningene sine?
+
+-   Spiller relevansen til informasjonen en rolle?
+
+## Vårt terningspill
+
+-   Et digital terningspill
+
+To manipulasjoner:
+
+-   Hvor mange ganger de kan rulle terningen før de rapporterer?
+
+-   Symboler på terningen
+
+## Design
+
+![](design.jpg){fig-align="center" width="692"}
+
+## Prosedyrer
+
+-   Innsamling av data i sommeren 2019
+-   1596 deltakere fra Amazon Mechanical Turk (MTurk)
+-   0,5 USD per nummer (6=3 USD)
+-   Programmert i oTree
+-   Pre-analysis plan med AEA-RCT Registry
+-   Akseptert for publisering i august 2023
+
+# Resultater
+
+## Measures of dishonesty
+
+```{r}
+fig_a<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "distance", add = "mean_se", lab.nb.digits = 2, label.pos = "in",fill="gray") +labs(x="",y="Distance (Size of the Lie) \U00B1 s.e.")+ theme(axis.text.x = element_text(angle = 75, hjust=1))+ggtitle("Intensive margin")
+
+fib_b<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "steal", add = "mean_se",lab.nb.digits = 2,fill="gray") +labs(x="",y="Proportion of Dishonest Reports \U00B1 s.e.")+ theme(axis.text.x = element_text(angle = 75, hjust=1))+ggtitle("Extensive margin")
+
+fig_a+fib_b
+```
+
+# Strategic Curiosity
+
+## Who rolls the die more?
+
+```{r}
+
+free=c("Single Roll", "Free Rolls (numbers)", "Free Rolls (symbols)")
+mmcur_pretest%>%
+  mutate(label=if_else(treatment_f=="Single Roll", "Single Roll \n (ex-post rolling)", if_else(treatment_f=="Free Rolls (numbers)", "Free Rolls (numbers) \n (ex-ante rolling)", if_else(treatment_f=="Free Rolls (symbols)", "Free Rolls (symbols) \n (ex-ante rolling)","none"))),
+         label = factor(label, level=c("Single Roll \n (ex-post rolling)", "Free Rolls (numbers) \n (ex-ante rolling)", "Free Rolls (symbols) \n (ex-ante rolling)"))
+         )%>%
+  filter(treatment_f%in%free)%>%
+ggbarplot(x = "steal_f", y = "total_rolling",add = "mean_se", fill="gray", facet.by= "label",data=.)+coord_cartesian(ylim =c (0, 9))+labs(x="Treatment",y="Number of Rolls \U00B1 s.e.")+stat_compare_means()
+
+```
+
+## When do they stop rolling?
+
+```{r, include=FALSE}
+
+library(stringr)
+library(tidyr)
+mmcur_pretest[,13:22][mmcur_pretest[,13:22] == 0] <- NA
+mmcur_pretest[,13:22][is.na(mmcur_pretest[,13:22])] <- ""
+
+dishonest<-mmcur_pretest%>%
+  tidyr::unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(stringr::str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,reported_number,throw_1, last_outcome,treatment_f,total_rolls )%>%
+  filter(steal==1&treatment_f=="Free Rolls (numbers)"&total_rolls>1)%>%
+  ggplot() +
+  geom_histogram(aes(x= last_outcome, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+  scale_fill_manual(name = "Last roll",
+                    values = c("gray48")) +
+   scale_color_manual(name = "Last rolls",
+                     values = c("gray48")) +
+    ylim(0,0.5)+
+  geom_hline(yintercept = 0.16,linetype = "longdash")+
+  theme_classic() + 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.5,0.8)) +
+  #geom_density(aes(x= "reported_number", y = ..density..), fill = "black", colour = "black", alpha = 0.3) +
+ ylab("Frequency")+
+  xlab("Outcome of the last die-roll")+
+    ggtitle("Dishonest")+
+    rremove("legend")+  
+  rremove("xlab") 
+
+```
+
+```{r, include=FALSE}
+
+
+mmcur_pretest%>%
+  tidyr::unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(stringr::str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,reported_number,throw_1, last_outcome,treatment_f,total_rolls )%>%
+  filter(steal==1&treatment_f=="Free Rolls (numbers)"&total_rolls>1)%>%
+  filter(last_outcome>0)%>%
+  select(last_outcome)%>%
+   mutate(
+    total=n()
+  )%>%
+  group_by(last_outcome)%>%
+  mutate(
+    n= n()
+  )%>%
+  distinct()
+
+
+
+mmcur_pretest%>%
+  tidyr::unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(stringr::str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,reported_number,throw_1, last_outcome,treatment_f,total_rolls )%>%
+  filter(steal==0&treatment_f=="Free Rolls (numbers)"&total_rolls>1)%>%
+  filter(last_outcome>0)%>%
+  select(last_outcome)%>%
+   mutate(
+    total=n()
+  )%>%
+  group_by(last_outcome)%>%
+  mutate(
+    n= n()
+  )%>%
+  distinct()
+
+honest<-mmcur_pretest%>%
+  unite(throws, throw_1:tenth_roll, sep=",",remove = FALSE)%>%
+  mutate(throws_2=gsub("^,*|(?<=,),|,*$", "", throws, perl=T))%>%
+  mutate(last_outcome=as.numeric(str_sub(throws_2, start= -1)))%>%
+  mutate(reported_number=as.numeric(report_roll))%>%
+  select(steal,reported_number,throw_1, last_outcome,treatment_f,total_rolls )%>%
+  filter(steal==0&treatment_f=="Free Rolls (numbers)"&total_rolls>1)%>%
+  ggplot() +
+  geom_histogram(aes(x= last_outcome, y= (..count..)/tapply(..count..,..PANEL..,sum)[..PANEL..],color = "black", fill = "gray48"), stat="count",binwidth=0.5, alpha=0.3,size=2,linetype =  "dashed", na.rm = TRUE) +
+  scale_fill_manual(name = "Last roll",
+                    values = c("gray48")) +
+   scale_color_manual(name = "Last rolls",
+                     values = c("gray48")) +
+  ylim(0,0.5)+
+  geom_hline(yintercept = 0.16,linetype = "longdash")+
+  theme_classic()+ 
+  theme(plot.title = element_text(hjust = 0.5), legend.position = c(0.5,0.8)) +
+ ylab("Fraction")+
+  xlab("Outcome of the last roll")+
+  ggtitle("Honest")+
+  rremove("y.axis")+
+  rremove("ylab") +
+  rremove("y.text") +
+  rremove("y.ticks") +
+  rremove("legend")+  
+    rremove("xlab") 
+gg_axis <- cowplot::get_plot_component(ggplot() +
+  labs(x = "Outcome of the last roll"), "xlab-b")
+
+```
+
+```{r}
+
+(dishonest+honest & labs(x = "Outcome of the last die-rolls", y = "Frequency")) / gg_axis + plot_layout(heights = c(40, 1))
+
+```
+
+# So...
+
+Ingen treatment-effekt når det gjelder løgn
+
+-   Det spiller ingen rolle hvor mange ganger de kan rulle terningen eller hva de ser, de lyver.
+
+Curiosity er strategisk
+
+-   De som ser lavere tall har høyere tendens til å rulle terningen flere ganger, både i ex-ante og ex-post.
+
+-   De som ruller terningen flere ganger stopper når de ser 6.
+
+# The good, the bad and the suspicious
+
+# The GOOD
+
+-   Den er publisert!
+
+-   Nytt bidrag i litteraturen
+
+# The BAD
+
+Det er noen svakheter...
+
+# Null result
+
+-   Ingen treatment effekt! Hva betyr det?
+
+![](images/9a0f71_8be6f54c6c044954a48f5e9c9e96c001~mv2.png){width="411"}
+
+# Sample
+
+-   Er det mulig å trekke sterke konklusjoner om generalt atferd med MTurk-deltakerne?
+
+![](mturk.jpg){width="606"}
+
+# The SUSPICIOUS
+
+-   Hvorfor klarer vi ikke å replikere tidligere studier?
+
+::: columns
+::: {.column width="48%"}
+Vår studie:
+
+-   Flere deltaker = høyere statistisk styrke
+
+-   Observerte eksperiment
+
+-   Mindre kontroll
+:::
+
+::: {.column width="48%"}
+Tidligere studier:
+
+-   Færre deltakere
+
+-   Sammenligning med den teoretiske fordelingen
+:::
+:::
