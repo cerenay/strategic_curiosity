@@ -38,14 +38,14 @@ c)  timing of the rolling opportunities.
 *Free Rolls (symbols):* Subjects are allowed to roll **as many times as they want before reporting**, and the outcome of the die is **symbols** after the first roll.
 
 
-The analysis focuses on the hypotheses in the pre-analysis plan and some other aspects of the results to investigate strategic curiosity. We use strategic curiosity to define the desire to collect more information when it can be used for one's benefit. In the die-rolling task, we assume curiosity could be strategically channeled to justify one's own dishonesty (reporting a high outcome and then seeing it).
+The analysis focuses on the hypotheses in the pre-analysis plan and some other aspects of the results to investigate strategic curiosity. We use strategic curiosity to define the desire to collect more information when it can be used for one's benefit. Curiosity is strategically triggered to justify one's own dishonesty by rolling the die more to see a higher outcome. 
 
 Our design enables us to investigate curiosity from two different angles:
 
 
-1)  **Information Type:** In Free Rolls (numbers), subjects see numbers after the first roll, while in Free Rolls (symbols), they see only figures after the first roll. In Free Rolls (numbers), information is relevant to the outcome, and in Free Rolls (symbols), they face irrelevant information. Our results show that irrelevant information significantly increases dishonesty compared to relevant information (Free Rolls (numbers)). In both treatments, rolling behavior follows similar patterns; subjects with low first-rolls are more likely to roll multiple times, and the total number of rolls is not significantly different between the two treatments.
+1)  **Information Type:** In Free Rolls (numbers), subjects see numbers after the first roll, while in Free Rolls (symbols), they see only figures after the first roll. In Free Rolls (numbers), information is relevant to the outcome, and in Free Rolls (symbols), they face irrelevant information. In both treatments, rolling behavior follows similar patterns; subjects with low first-rolls are more likely to roll multiple times, and the total number of rolls is not significantly different between the two treatments.
 
-2)  **Time of the Information:** In Single Roll, subjects can roll as many times as they want after reporting (ex-post), and in Free Rolls (numbers), they have the same chance before reporting (ex-ante). Our results show no significant difference between these two treatments regarding dishonesty. On the other hand, the rolling behavior is similar; subjects with lower first-roll outcomes are more likely to roll. In Free Rolls (numbers), the highest number they see before reporting has a significantly small increasing effect on dishonesty. In Single Roll, subjects who misreported are more likely to roll more ex-post.
+2)  **Time of the Information:** In Single Roll, subjects can roll as many times as they want after reporting (ex-post), and in Free Rolls (numbers), they have the same chance before reporting (ex-ante). Our results show no significant difference between these two treatments regarding dishonesty. On the other hand, the rolling behavior is similar; subjects with lower first-roll outcomes are more likely to roll. In Free Rolls (numbers), the highest number they see before reporting increases dishonesty. In Single Roll, subjects who misreported are more likely to roll more ex-post.
 
 ```{r include=FALSE}
 library(foreign)
@@ -162,9 +162,10 @@ mmcur_pretest_merged %>%
 
 #### Descriptive Statistics
 
-The experiment is conducted on Amazon Mechanical Turk in May 2019. In total, 1580 participants joined the experiment,but after implementing exclusion criteria to ensure the completion of the experiment and the provision of logical answers, only a subset of them, represented as `r sample` remained. Specifically we exclude those who reported lower numbers than they actually saw in the first roll, or those who attempted to earn less than they were supposed to.
+The experiment is conducted on Amazon Mechanical Turk in June-July 2019. In total, 1580 participants joined the experiment,but after implementing exclusion criteria to ensure the completion of the experiment and the provision of logical answers, only a subset of them, represented as `r sample` remained. Specifically we exclude those who reported lower numbers than they actually saw in the first roll, or those who attempted to earn less than they were supposed to.
 
-The two tables below show descriptive statistics about the sample across different treatments. It is evident that the majority of participants are male, and this gender distribution is consistent across all treatments. In the case of Single Roll and Free Rolls (numbers), no significant difference in dishonesty is observed. However, in the case of Three Rolls and Free Rolls (symbols), dishonesty appears to be higher.
+The two tables below show descriptive statistics about the sample across different treatments. It is evident that the majority of participants are male, and this gender distribution is consistent across all treatments.
+
 
 ```{r echo=FALSE, cache=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
 descript<- compareGroups(treatment_f ~ age+sex_f+ education+political+total_rolls+practice_rolls+report_roll+observe+legit+curious, data = mmcur_pretest)
@@ -183,7 +184,7 @@ We start our analysis by investigating the dishonest behavior across treatments.
 
 **Hypothesis 1 and Hypothesis 2:** In our pre-analysis plan, we hypothesized that participants who can observe more information in Three Rolls and Free Rolls (numbers) would be more likely to behave dishonestly compared to Single Roll and Free Rolls (symbols). 
 
-The figure below displays the average reported numbers by treatment, with standard errors represented by the bars. In the Three Rolls treatment, we observe a higher average reported number (p=0.07 compared to Single Roll, and p=0.08 compared to Free Rolls (numbers)).
+The figure below displays the average reported numbers by treatment, with standard errors represented by the bars.
 
 ```{r reported_number, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
 reported_number<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "report_roll", add = "mean_se", label=TRUE, lab.nb.digits = 2, label.pos = "in",fill="gray")+
@@ -200,11 +201,11 @@ download_this(reported_number,
     icon = "fa fa-save")
 ```
 
-**Hypothesis 3a and 3b:** We hypothesized that observing a higher number on the subsequent roll would offer stronger justification for dishonesty. Consequently, we anticipated that individuals who witnessed a higher outcome on their subsequent roll compared to their initial roll would exhibit greater dishonesty.
+**Hypothesis 3a and 3b:** We hypothesized that observing a higher number on the subsequent rolls would offer stronger justification for dishonesty. Consequently, we anticipated that individuals who witnessed a higher outcome on their subsequent rolls compared to their initial roll would exhibit greater dishonesty.
 
-To support our hypothesis, we present several outcomes below.
+To test this hypothesis, we present several outcomes below.
 
-Because we were able to compare the actual results with the reported ones, we offer a metric to assess the extent of deception, known as the **intensive margin** of the lie. This metric quantifies the difference between the reported number and the actual outcome of the first die-roll.
+Because we were able to compare the actual results with the reported ones, we offer a metric to assess the extent of deception, known as the **intensive margin** of the lie. This metric quantifies the difference between the reported number and the actual outcome of the first roll.
 
 ```{r fig_3a, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
 
@@ -223,7 +224,7 @@ download_this(intensive_margin,
     icon = "fa fa-save")
 ```
 
-The figure below shows the proportion of dishonest reports in each treatment or **extensive margin** of the lie.
+The figure below shows the proportion of dishonest reports in each treatment or the **extensive margin** of the lie.
 
 ```{r fig_3b, echo=FALSE, cache=FALSE, results=FALSE, warning=FALSE, comment=FALSE, warning=FALSE}
 extensive_margin<-ggbarplot(mmcur_pretest, x = "treatment_f", y = "steal", add = "mean_se",label=TRUE, lab.nb.digits = 2,fill="gray") +
@@ -674,7 +675,6 @@ download_this(roll_by_lie,
 
 ### Determinants of the "distance"
 
-This part is to investigate the log(total_rolls+1) and see what we lose or gain.
 
 This table shows regression estimation for reported number-first roll outcome.
 
@@ -699,10 +699,14 @@ cheating_int_log = mmcur_pretest%>%
 ```
 
 ```{r results="asis"}
-stargazer::stargazer(cheating_log_norm,cheating_int_log,type='html')
+stargazer::stargazer(cheating_log_norm,cheating_int_log,type='html',
+                     covariate.labels = c("Log(Number of rolls+1)", "Three Rolls", "Free Rolls (numbers)",
+                               "Free Rolls (symbols)", "Number of practice rolls", "First roll", "Age", "Female", "Higher education", "Three Rolls X First roll", "Free Rolls (numbers) X First Roll", "Free Rolls (symbols) X First roll"),
+          dep.var.caption  = "Dep. var. : distance",
+          dep.var.labels   = "Reported number - Real outcome")
 ```
 
-
+**Note:** *Number of practice rolls* shows the number of die rolls prior to the start of experiment, *First roll* shows the outcome of the first die roll, *Higher education* is the cutoff for education above high school. 
 
 ### Mediation Analysis
 
@@ -714,7 +718,7 @@ However, we cover this question in our regressions and correlation tables in the
 
 In order to test whether the observation of desirable counterfactuals accounts for the increased dishonest reporting in Free Rolls (numbers) and Free Rolls (symbols) compared to Single Roll, we estimate a mediation model.
 
-We estimate a linear relationship between lying and treatment effects by using the highest observed outcome for each subject as a mediator of the expected effect. The mediator is the highest observed outcome from (max_of_additional). The independent variable in the model is treatment condition (treatment_d). Since we want to compare both Free Rolls (numbers) and Free Rolls (symbols) with Single Roll, we use indicator coding with Single Roll group as reference group.
+We estimate a linear relationship between lying and treatment effects by using the highest observed outcome for each subject as a mediator of the expected effect. The mediator is the highest observed outcome from (max_of_additional). The independent variable in the model is treatment condition (treatment_d). We use Single Roll as reference group and compare it to Three Rolls and Free Rolls (numbers).
 
 
 ```{r echo=FALSE,results=FALSE}
